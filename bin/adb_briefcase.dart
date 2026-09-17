@@ -1,57 +1,60 @@
-import 'package:args/args.dart';
+import 'package:dart_tui/dart_tui.dart';
 
-const String version = '0.0.1';
-
-ArgParser buildParser() {
-  return ArgParser()
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Print this usage information.',
-    )
-    ..addFlag(
-      'verbose',
-      abbr: 'v',
-      negatable: false,
-      help: 'Show additional command output.',
-    )
-    ..addFlag('version', negatable: false, help: 'Print the tool version.');
+Future<void> main() async {
+  await Program(
+    options: [
+      withAltScreen(),
+    ],
+  ).run(CounterModel());
 }
 
-void printUsage(ArgParser argParser) {
-  print('Usage: dart adb_briefcase.dart <flags> [arguments]');
-  print(argParser.usage);
-}
+final class CounterModel extends Model {
+  CounterModel({
+    this.count = 0,
+  });
 
-void main(List<String> arguments) {
-  final ArgParser argParser = buildParser();
-  try {
-    final ArgResults results = argParser.parse(arguments);
-    bool verbose = false;
+  final int count;
 
-    // Process the parsed arguments.
-    if (results.flag('help')) {
-      printUsage(argParser);
-      return;
-    }
-    if (results.flag('version')) {
-      print('adb_briefcase version: $version');
-      return;
-    }
-    if (results.flag('verbose')) {
-      verbose = true;
+  @override
+  (Model, Cmd?) update(Msg msg) {
+    if (msg is KeyMsg) {
+      switch (msg.key) {
+        case 'up':
+        case 'k':
+          return (
+          CounterModel(count: count + 1),
+          null,
+          );
+
+        case 'down':
+        case 'j':
+          return (
+          CounterModel(count: count - 1),
+          null,
+          );
+
+        case 'q':
+        case 'ctrl+c':
+          return (
+          this,
+              () => quit(),
+          );
+      }
     }
 
-    // Act on the arguments provided.
-    print('Positional arguments: ${results.rest}');
-    if (verbose) {
-      print('[VERBOSE] All arguments: ${results.arguments}');
-    }
-  } on FormatException catch (e) {
-    // Print usage information if an invalid argument was provided.
-    print(e.message);
-    print('');
-    printUsage(argParser);
+    return (this, null);
+  }
+
+  @override
+  View view() {
+    return newView('''
+Counter
+
+Count: $count
+
+↑ / k   increase
+↓ / j   decrease
+q       quit
+''');
   }
 }
